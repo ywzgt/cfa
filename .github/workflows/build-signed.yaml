@@ -1,0 +1,81 @@
+name: Build Signed
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/**'
+      - '.idea/**'
+      - '.gitattributes'
+      - '.gitignore'
+      - '.gitmodules'
+      - '**.md'
+      - 'LICENSE'
+      - 'NOTICE'
+  pull_request:
+    paths-ignore:
+      - '.github/**'
+      - '.idea/**'
+      - '.gitattributes'
+      - '.gitignore'
+      - '.gitmodules'
+      - '**.md'
+      - 'LICENSE'
+      - 'NOTICE'
+
+jobs:
+  BuildSigned:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: 17
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.20.3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Clone Repositories
+        run: |
+          [ -n "$(<VERSION)" ] && git clone https://github.com/Kr328/ClashForAndroid -b "$(<VERSION)" || git clone --depth 1 https://github.com/Kr328/ClashForAndroid
+          cp signing.properties ClashForAndroid
+          git clone --depth 1 https://github.com/Kr328/clash ClashForAndroid/core/src/foss/golang/clash
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Execute Gradle build
+        run: |
+            cd ClashForAndroid
+            ./gradlew --no-daemon app:assembleFossRelease
+
+      - name: Upload Apks To Tag
+        run: |
+            cp ClashForAndroid/app/build/outputs/apk/foss/release/*.apk .
+            TAG="$(<tag_version)"
+            git config --local user.name "github-actions"
+            git config --local user.email "github-actions@github.com"
+            git pull
+            git rm -r .github
+            git rm android.jks make.log README.md signing.properties tag_version VERSION
+            git add *.apk
+            git commit -m "$TAG"
+            git checkout --orphan new_tag
+            git commit -m "Creating $TAG"
+            git branch -D main
+            git branch -m main
+            git tag "$TAG"
+            git push origin "$TAG"
