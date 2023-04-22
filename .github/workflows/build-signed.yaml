@@ -1,27 +1,19 @@
 name: Build Signed
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
     paths-ignore:
       - '.github/**'
-      - '.idea/**'
       - '.gitattributes'
       - '.gitignore'
       - '.gitmodules'
       - '**.md'
       - 'LICENSE'
       - 'NOTICE'
-  pull_request:
-    paths-ignore:
-      - '.github/**'
-      - '.idea/**'
-      - '.gitattributes'
-      - '.gitignore'
-      - '.gitmodules'
-      - '**.md'
-      - 'LICENSE'
-      - 'NOTICE'
+      - 'android.jks'
+      - 'signing.properties'
 
 jobs:
   BuildSigned:
@@ -39,7 +31,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: 1.20.3
+          go-version: 'stable'
       - uses: actions/cache@v3
         with:
           path: |
@@ -67,10 +59,10 @@ jobs:
             cp ClashForAndroid/app/build/outputs/apk/foss/release/*.apk .
             TAG="$(<tag_version)"
             git config --local user.name "github-actions"
-            git config --local user.email "github-actions@github.com"
+            git config --local user.email "noreply@github.com"
             git pull
             git rm -r .github
-            git rm android.jks make.log README.md signing.properties tag_version VERSION
+            git rm android.jks README.md signing.properties tag_version VERSION
             git add *.apk
             git commit -m "$TAG"
             git checkout --orphan new_tag
