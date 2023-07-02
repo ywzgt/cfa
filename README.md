@@ -1,5 +1,5 @@
 ## Clash for Android
-
+![GitHub repo size](https://img.shields.io/github/repo-size/ywzgt/cfa)
  - https://github.com/Kr328/ClashForAndroid
 
  - https://github.com/Kr328/clash
